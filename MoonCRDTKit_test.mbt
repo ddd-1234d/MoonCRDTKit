@@ -74,3 +74,16 @@ test "or set merges adds and observed removes" {
   assert_true(second.contains("task-b"))
   assert_eq(second.size(), 1)
 }
+
+///|
+test "change logs deduplicate events by replica sequence id" {
+  let left = @MoonCRDTKit.ChangeLog::new()
+  let right = @MoonCRDTKit.ChangeLog::new()
+  let event = @MoonCRDTKit.ChangeEvent::new(1, 7, "set", "title")
+  assert_true(left.append(event))
+  assert_false(left.append(event))
+  assert_true(right.append(@MoonCRDTKit.ChangeEvent::new(2, 1, "add", "task")))
+  let merged = left.merge(right)
+  assert_eq(event.id(), 1000007)
+  assert_eq(merged.length(), 2)
+}

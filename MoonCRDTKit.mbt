@@ -46,6 +46,19 @@ pub(all) struct ORSet {
 } derive(Debug)
 
 ///|
+pub(all) struct ChangeEvent {
+  replica : Int
+  sequence : Int
+  kind : String
+  target : String
+} derive(Debug, Eq)
+
+///|
+pub(all) struct ChangeLog {
+  events : Array[ChangeEvent]
+} derive(Debug)
+
+///|
 fn max_int(a : Int, b : Int) -> Int {
   if a > b {
     a
@@ -345,4 +358,61 @@ pub fn ORSet::merge(self : ORSet, other : ORSet) -> ORSet {
     }
   }
   merged
+}
+
+///|
+pub fn ChangeEvent::new(
+  replica : Int,
+  sequence : Int,
+  kind : String,
+  target : String,
+) -> ChangeEvent {
+  { replica, sequence: max_int(sequence, 0), kind, target }
+}
+
+///|
+pub fn ChangeEvent::id(self : ChangeEvent) -> Int {
+  self.replica * 1000000 + self.sequence
+}
+
+///|
+pub fn ChangeLog::new() -> ChangeLog {
+  { events: [] }
+}
+
+///|
+fn ChangeLog::contains_id(self : ChangeLog, id : Int) -> Bool {
+  for event in self.events {
+    if event.id() == id {
+      return true
+    }
+  }
+  false
+}
+
+///|
+pub fn ChangeLog::append(self : ChangeLog, event : ChangeEvent) -> Bool {
+  if self.contains_id(event.id()) {
+    false
+  } else {
+    self.events.push(event)
+    true
+  }
+}
+
+///|
+pub fn ChangeLog::merge(self : ChangeLog, other : ChangeLog) -> ChangeLog {
+  let merged = ChangeLog::new()
+  for event in self.events {
+    ignore(merged.append(event))
+  }
+  for event in other.events {
+    ignore(merged.append(event))
+  }
+  merged
+}
+
+///|
+pub fn ChangeLog::length(self : ChangeLog) -> Int {
+  self.events.length()
 }
