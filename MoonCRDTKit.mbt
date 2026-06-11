@@ -59,6 +59,15 @@ pub(all) struct ChangeLog {
 } derive(Debug)
 
 ///|
+pub(all) struct SyncSummary {
+  replica : Int
+  clock_entries : Int
+  counter_value : Int
+  set_size : Int
+  log_events : Int
+} derive(Debug, Eq)
+
+///|
 fn max_int(a : Int, b : Int) -> Int {
   if a > b {
     a
@@ -415,4 +424,26 @@ pub fn ChangeLog::merge(self : ChangeLog, other : ChangeLog) -> ChangeLog {
 ///|
 pub fn ChangeLog::length(self : ChangeLog) -> Int {
   self.events.length()
+}
+
+///|
+pub fn SyncSummary::new(
+  replica : Int,
+  clock : VectorClock,
+  counter : PNCounter,
+  set : ORSet,
+  log : ChangeLog,
+) -> SyncSummary {
+  {
+    replica,
+    clock_entries: clock.entries.length(),
+    counter_value: counter.value(),
+    set_size: set.size(),
+    log_events: log.length(),
+  }
+}
+
+///|
+pub fn SyncSummary::to_json(self : SyncSummary) -> String {
+  "{\"replica\":\{self.replica},\"clock_entries\":\{self.clock_entries},\"counter_value\":\{self.counter_value},\"set_size\":\{self.set_size},\"log_events\":\{self.log_events}}"
 }

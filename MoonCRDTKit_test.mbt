@@ -87,3 +87,20 @@ test "change logs deduplicate events by replica sequence id" {
   assert_eq(event.id(), 1000007)
   assert_eq(merged.length(), 2)
 }
+
+///|
+test "sync summary reports compact replica state" {
+  let clock = @MoonCRDTKit.VectorClock::new()
+  let counter = @MoonCRDTKit.PNCounter::new()
+  let set = @MoonCRDTKit.ORSet::new()
+  let log = @MoonCRDTKit.ChangeLog::new()
+  clock.tick(1)
+  counter.increment(1, amount=5)
+  set.add("doc", 101)
+  ignore(log.append(@MoonCRDTKit.ChangeEvent::new(1, 1, "add", "doc")))
+  let summary = @MoonCRDTKit.SyncSummary::new(1, clock, counter, set, log)
+  assert_eq(summary.clock_entries, 1)
+  assert_eq(summary.counter_value, 5)
+  assert_eq(summary.set_size, 1)
+  assert_true(summary.to_json().contains("\"log_events\":1"))
+}
