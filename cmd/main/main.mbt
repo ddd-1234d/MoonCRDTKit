@@ -1,7 +1,21 @@
 ///|
-/// Entry point for the CLI or runnable program in this template.
-/// Keep main focused; move logic into the library package.
-/// Run with `moon run cmd/main` from the project root.
 fn main {
-  println("Hello")
+  let left_clock = @crdt.VectorClock::new()
+  let right_clock = @crdt.VectorClock::new()
+  left_clock.tick(1)
+  right_clock.tick(2)
+  let merged_clock = left_clock.merge(right_clock)
+  let counter = @crdt.PNCounter::new()
+  counter.increment(1, amount=8)
+  counter.decrement(2, amount=3)
+  let tasks = @crdt.ORSet::new()
+  tasks.add("offline-note", 1001)
+  tasks.add("sync-later", 2001)
+  let log = @crdt.ChangeLog::new()
+  ignore(log.append(@crdt.ChangeEvent::new(1, 1, "add", "offline-note")))
+  ignore(log.append(@crdt.ChangeEvent::new(2, 1, "add", "sync-later")))
+  let summary = @crdt.SyncSummary::new(1, merged_clock, counter, tasks, log)
+  println(summary.to_json())
+  println("counter=\{counter.value()}")
+  println("tasks=\{tasks.size()}")
 }

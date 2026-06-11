@@ -1,6 +1,6 @@
-// import {
-//   "ddd-1234d/MoonCRDTKit" @lib,
-// }
+import {
+  "ddd-1234d/MoonCRDTKit" @crdt,
+}
 
 options(
   "is-main": true,
