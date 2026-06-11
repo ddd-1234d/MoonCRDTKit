@@ -34,6 +34,18 @@ pub(all) struct PNCounter {
 } derive(Debug)
 
 ///|
+pub(all) struct ORSetEntry {
+  element : String
+  dot : Int
+  removed : Bool
+} derive(Debug, Eq)
+
+///|
+pub(all) struct ORSet {
+  entries : Array[ORSetEntry]
+} derive(Debug)
+
+///|
 fn max_int(a : Int, b : Int) -> Int {
   if a > b {
     a
@@ -247,4 +259,90 @@ pub fn PNCounter::merge(self : PNCounter, other : PNCounter) -> PNCounter {
     positive: self.positive.merge(other.positive),
     negative: self.negative.merge(other.negative),
   }
+}
+
+///|
+pub fn ORSetEntry::new(
+  element : String,
+  dot : Int,
+  removed? : Bool = false,
+) -> ORSetEntry {
+  { element, dot, removed }
+}
+
+///|
+pub fn ORSet::new() -> ORSet {
+  { entries: [] }
+}
+
+///|
+fn ORSet::find_dot(self : ORSet, dot : Int) -> Int {
+  for i = 0; i < self.entries.length(); i = i + 1 {
+    if self.entries[i].dot == dot {
+      return i
+    }
+  }
+  -1
+}
+
+///|
+pub fn ORSet::add(self : ORSet, element : String, dot : Int) -> Unit {
+  if self.find_dot(dot) < 0 {
+    self.entries.push(ORSetEntry::new(element, dot))
+  }
+}
+
+///|
+pub fn ORSet::remove(self : ORSet, element : String) -> Unit {
+  for i = 0; i < self.entries.length(); i = i + 1 {
+    if self.entries[i].element == element {
+      self.entries[i] = ORSetEntry::new(
+        self.entries[i].element,
+        self.entries[i].dot,
+        removed=true,
+      )
+    }
+  }
+}
+
+///|
+pub fn ORSet::contains(self : ORSet, element : String) -> Bool {
+  for entry in self.entries {
+    if entry.element == element && !entry.removed {
+      return true
+    }
+  }
+  false
+}
+
+///|
+pub fn ORSet::size(self : ORSet) -> Int {
+  let mut count = 0
+  for entry in self.entries {
+    if !entry.removed {
+      count = count + 1
+    }
+  }
+  count
+}
+
+///|
+pub fn ORSet::merge(self : ORSet, other : ORSet) -> ORSet {
+  let merged = ORSet::new()
+  for entry in self.entries {
+    merged.entries.push(entry)
+  }
+  for entry in other.entries {
+    let index = merged.find_dot(entry.dot)
+    if index < 0 {
+      merged.entries.push(entry)
+    } else if entry.removed {
+      merged.entries[index] = ORSetEntry::new(
+        merged.entries[index].element,
+        merged.entries[index].dot,
+        removed=true,
+      )
+    }
+  }
+  merged
 }

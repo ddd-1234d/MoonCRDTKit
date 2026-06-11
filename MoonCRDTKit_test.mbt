@@ -58,3 +58,19 @@ test "pn counter supports offline increments and decrements" {
   assert_eq(left.value(), 7)
   assert_eq(merged.value(), 10)
 }
+
+///|
+test "or set merges adds and observed removes" {
+  let left = @MoonCRDTKit.ORSet::new()
+  let right = @MoonCRDTKit.ORSet::new()
+  left.add("task-a", 101)
+  right.add("task-b", 201)
+  let first = left.merge(right)
+  assert_true(first.contains("task-a"))
+  assert_true(first.contains("task-b"))
+  first.remove("task-a")
+  let second = first.merge(left)
+  assert_false(second.contains("task-a"))
+  assert_true(second.contains("task-b"))
+  assert_eq(second.size(), 1)
+}
