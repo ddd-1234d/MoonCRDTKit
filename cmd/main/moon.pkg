@@ -1,0 +1,7 @@
+// import {
+//   "ddd-1234d/MoonCRDTKit" @lib,
+// }
+
+options(
+  "is-main": true,
+)
