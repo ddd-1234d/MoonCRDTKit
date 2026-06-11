@@ -10,6 +10,13 @@ pub(all) struct VectorClock {
 } derive(Debug)
 
 ///|
+pub(all) struct LwwRegister {
+  value : String
+  timestamp : Int
+  replica : Int
+} derive(Debug, Eq)
+
+///|
 fn max_int(a : Int, b : Int) -> Int {
   if a > b {
     a
@@ -89,4 +96,41 @@ pub fn VectorClock::concurrent_with(
   other : VectorClock,
 ) -> Bool {
   !self.dominates(other) && !other.dominates(self)
+}
+
+///|
+pub fn LwwRegister::new(
+  value : String,
+  timestamp : Int,
+  replica : Int,
+) -> LwwRegister {
+  { value, timestamp, replica }
+}
+
+///|
+pub fn LwwRegister::assign(
+  self : LwwRegister,
+  value : String,
+  timestamp : Int,
+  replica : Int,
+) -> LwwRegister {
+  self.merge(LwwRegister::new(value, timestamp, replica))
+}
+
+///|
+pub fn LwwRegister::merge(
+  self : LwwRegister,
+  other : LwwRegister,
+) -> LwwRegister {
+  if other.timestamp > self.timestamp ||
+    (other.timestamp == self.timestamp && other.replica > self.replica) {
+    other
+  } else {
+    self
+  }
+}
+
+///|
+pub fn LwwRegister::to_json(self : LwwRegister) -> String {
+  "{\"value\":\"\{self.value}\",\"timestamp\":\{self.timestamp},\"replica\":\{self.replica}}"
 }

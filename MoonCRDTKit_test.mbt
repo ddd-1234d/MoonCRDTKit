@@ -21,3 +21,14 @@ test "vector clock merges and detects concurrency" {
   assert_true(left.concurrent_with(right))
   assert_true(merged.dominates(left))
 }
+
+///|
+test "lww register chooses newest timestamp and deterministic replica tie" {
+  let base = @MoonCRDTKit.LwwRegister::new("draft", 1, 1)
+  let newer = base.assign("saved", 2, 1)
+  let tie = @MoonCRDTKit.LwwRegister::new("remote", 2, 9)
+  let merged = newer.merge(tie)
+  assert_eq(newer.value, "saved")
+  assert_eq(merged.value, "remote")
+  assert_true(merged.to_json().contains("\"replica\":9"))
+}
