@@ -17,6 +17,17 @@ pub(all) struct LwwRegister {
 } derive(Debug, Eq)
 
 ///|
+pub(all) struct CounterEntry {
+  replica : Int
+  value : Int
+} derive(Debug, Eq)
+
+///|
+pub(all) struct GCounter {
+  entries : Array[CounterEntry]
+} derive(Debug)
+
+///|
 fn max_int(a : Int, b : Int) -> Int {
   if a > b {
     a
@@ -133,4 +144,65 @@ pub fn LwwRegister::merge(
 ///|
 pub fn LwwRegister::to_json(self : LwwRegister) -> String {
   "{\"value\":\"\{self.value}\",\"timestamp\":\{self.timestamp},\"replica\":\{self.replica}}"
+}
+
+///|
+pub fn CounterEntry::new(replica : Int, value : Int) -> CounterEntry {
+  { replica, value: max_int(value, 0) }
+}
+
+///|
+pub fn GCounter::new() -> GCounter {
+  { entries: [] }
+}
+
+///|
+pub fn GCounter::get(self : GCounter, replica : Int) -> Int {
+  for entry in self.entries {
+    if entry.replica == replica {
+      return entry.value
+    }
+  }
+  0
+}
+
+///|
+pub fn GCounter::set(self : GCounter, replica : Int, value : Int) -> Unit {
+  for i = 0; i < self.entries.length(); i = i + 1 {
+    if self.entries[i].replica == replica {
+      self.entries[i] = CounterEntry::new(replica, value)
+      return
+    }
+  }
+  self.entries.push(CounterEntry::new(replica, value))
+}
+
+///|
+pub fn GCounter::increment(
+  self : GCounter,
+  replica : Int,
+  amount? : Int = 1,
+) -> Unit {
+  self.set(replica, self.get(replica) + max_int(amount, 0))
+}
+
+///|
+pub fn GCounter::value(self : GCounter) -> Int {
+  let mut total = 0
+  for entry in self.entries {
+    total = total + entry.value
+  }
+  total
+}
+
+///|
+pub fn GCounter::merge(self : GCounter, other : GCounter) -> GCounter {
+  let merged = GCounter::new()
+  for entry in self.entries {
+    merged.set(entry.replica, entry.value)
+  }
+  for entry in other.entries {
+    merged.set(entry.replica, max_int(merged.get(entry.replica), entry.value))
+  }
+  merged
 }

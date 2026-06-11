@@ -32,3 +32,16 @@ test "lww register chooses newest timestamp and deterministic replica tie" {
   assert_eq(merged.value, "remote")
   assert_true(merged.to_json().contains("\"replica\":9"))
 }
+
+///|
+test "g counter grows per replica and merges by max" {
+  let left = @MoonCRDTKit.GCounter::new()
+  let right = @MoonCRDTKit.GCounter::new()
+  left.increment(1, amount=2)
+  right.increment(1, amount=1)
+  right.increment(2, amount=5)
+  let merged = left.merge(right)
+  assert_eq(merged.get(1), 2)
+  assert_eq(merged.get(2), 5)
+  assert_eq(merged.value(), 7)
+}
