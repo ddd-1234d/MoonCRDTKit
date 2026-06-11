@@ -28,6 +28,12 @@ pub(all) struct GCounter {
 } derive(Debug)
 
 ///|
+pub(all) struct PNCounter {
+  positive : GCounter
+  negative : GCounter
+} derive(Debug)
+
+///|
 fn max_int(a : Int, b : Int) -> Int {
   if a > b {
     a
@@ -205,4 +211,40 @@ pub fn GCounter::merge(self : GCounter, other : GCounter) -> GCounter {
     merged.set(entry.replica, max_int(merged.get(entry.replica), entry.value))
   }
   merged
+}
+
+///|
+pub fn PNCounter::new() -> PNCounter {
+  { positive: GCounter::new(), negative: GCounter::new() }
+}
+
+///|
+pub fn PNCounter::increment(
+  self : PNCounter,
+  replica : Int,
+  amount? : Int = 1,
+) -> Unit {
+  self.positive.increment(replica, amount~)
+}
+
+///|
+pub fn PNCounter::decrement(
+  self : PNCounter,
+  replica : Int,
+  amount? : Int = 1,
+) -> Unit {
+  self.negative.increment(replica, amount~)
+}
+
+///|
+pub fn PNCounter::value(self : PNCounter) -> Int {
+  self.positive.value() - self.negative.value()
+}
+
+///|
+pub fn PNCounter::merge(self : PNCounter, other : PNCounter) -> PNCounter {
+  {
+    positive: self.positive.merge(other.positive),
+    negative: self.negative.merge(other.negative),
+  }
 }

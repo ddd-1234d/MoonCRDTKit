@@ -45,3 +45,16 @@ test "g counter grows per replica and merges by max" {
   assert_eq(merged.get(2), 5)
   assert_eq(merged.value(), 7)
 }
+
+///|
+test "pn counter supports offline increments and decrements" {
+  let left = @MoonCRDTKit.PNCounter::new()
+  let right = @MoonCRDTKit.PNCounter::new()
+  left.increment(1, amount=10)
+  left.decrement(1, amount=3)
+  right.increment(2, amount=4)
+  right.decrement(2, amount=1)
+  let merged = left.merge(right)
+  assert_eq(left.value(), 7)
+  assert_eq(merged.value(), 10)
+}
