@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1 - 2026-06-14
+
+- 补充与 `mizchi/crdt_db`、`mizchi/converge` 和 MoonBit 官方 CRDT 文章的关系说明。
+- 增加 `DeltaBatch`，支持根据向量时钟提取缺失变更并幂等应用。
+- 增加 `SyncPlan`，支持根据同步摘要判断 push / pull / 双向交换。
+- 更新 CLI 演示和测试，覆盖增量同步与摘要交换路径。
+
 ## 0.1.0 - 2026-06-12
 
 - 初始化 MoonCRDTKit 项目结构和元信息。

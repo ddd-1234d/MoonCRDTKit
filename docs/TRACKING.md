@@ -9,6 +9,8 @@
 - 建立 G-Counter、PN-Counter 和 OR-Set。
 - 建立变更日志和副本同步摘要。
 - 建立 CLI、CI、Issue 模板、PR 模板和变更记录。
+- 补充与 `mizchi/crdt_db`、`mizchi/converge` 和 MoonBit 官方 CRDT 文章的差异说明。
+- 增加 DeltaBatch 与 SyncPlan，形成轻量增量同步示例。
 
 ## 建议创建的工单
 
@@ -16,6 +18,7 @@
 - `feature: 增加 Map CRDT 组合对象`
 - `test: 增加随机合并一致性测试`
 - `docs: 增加离线表单同步示例`
+- `benchmark: 增加不同副本规模下的合并性能记录`
 
 ## 建议维护节奏
 

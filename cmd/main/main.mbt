@@ -15,7 +15,18 @@ fn main {
   ignore(log.append(@crdt.ChangeEvent::new(1, 1, "add", "offline-note")))
   ignore(log.append(@crdt.ChangeEvent::new(2, 1, "add", "sync-later")))
   let summary = @crdt.SyncSummary::new(1, merged_clock, counter, tasks, log)
+  let remote_summary = @crdt.SyncSummary::new(
+    2,
+    @crdt.VectorClock::new(),
+    @crdt.PNCounter::new(),
+    @crdt.ORSet::new(),
+    @crdt.ChangeLog::new(),
+  )
+  let delta = log.delta_after(right_clock, origin=1)
+  let plan = summary.plan_with(remote_summary)
   println(summary.to_json())
+  println(delta.to_json())
+  println(plan.to_json())
   println("counter=\{counter.value()}")
   println("tasks=\{tasks.size()}")
 }

@@ -59,12 +59,28 @@ pub(all) struct ChangeLog {
 } derive(Debug)
 
 ///|
+pub(all) struct DeltaBatch {
+  origin : Int
+  events : Array[ChangeEvent]
+} derive(Debug)
+
+///|
 pub(all) struct SyncSummary {
   replica : Int
   clock_entries : Int
   counter_value : Int
   set_size : Int
   log_events : Int
+} derive(Debug, Eq)
+
+///|
+pub(all) struct SyncPlan {
+  source : Int
+  target : Int
+  needs_push : Bool
+  needs_pull : Bool
+  source_events : Int
+  target_events : Int
 } derive(Debug, Eq)
 
 ///|
@@ -385,14 +401,22 @@ pub fn ChangeEvent::id(self : ChangeEvent) -> Int {
 }
 
 ///|
+pub fn ChangeEvent::same_identity(
+  self : ChangeEvent,
+  other : ChangeEvent,
+) -> Bool {
+  self.replica == other.replica && self.sequence == other.sequence
+}
+
+///|
 pub fn ChangeLog::new() -> ChangeLog {
   { events: [] }
 }
 
 ///|
-fn ChangeLog::contains_id(self : ChangeLog, id : Int) -> Bool {
+fn ChangeLog::contains_event(self : ChangeLog, candidate : ChangeEvent) -> Bool {
   for event in self.events {
-    if event.id() == id {
+    if event.same_identity(candidate) {
       return true
     }
   }
@@ -401,7 +425,7 @@ fn ChangeLog::contains_id(self : ChangeLog, id : Int) -> Bool {
 
 ///|
 pub fn ChangeLog::append(self : ChangeLog, event : ChangeEvent) -> Bool {
-  if self.contains_id(event.id()) {
+  if self.contains_event(event) {
     false
   } else {
     self.events.push(event)
@@ -427,6 +451,56 @@ pub fn ChangeLog::length(self : ChangeLog) -> Int {
 }
 
 ///|
+pub fn ChangeLog::delta_after(
+  self : ChangeLog,
+  known : VectorClock,
+  origin? : Int = 0,
+) -> DeltaBatch {
+  let delta = DeltaBatch::new(origin)
+  for event in self.events {
+    if event.sequence > known.get(event.replica) {
+      delta.events.push(event)
+    }
+  }
+  delta
+}
+
+///|
+pub fn ChangeLog::apply_delta(
+  self : ChangeLog,
+  delta : DeltaBatch,
+) -> ChangeLog {
+  let merged = ChangeLog::new()
+  for event in self.events {
+    ignore(merged.append(event))
+  }
+  for event in delta.events {
+    ignore(merged.append(event))
+  }
+  merged
+}
+
+///|
+pub fn DeltaBatch::new(origin : Int) -> DeltaBatch {
+  { origin, events: [] }
+}
+
+///|
+pub fn DeltaBatch::length(self : DeltaBatch) -> Int {
+  self.events.length()
+}
+
+///|
+pub fn DeltaBatch::is_empty(self : DeltaBatch) -> Bool {
+  self.length() == 0
+}
+
+///|
+pub fn DeltaBatch::to_json(self : DeltaBatch) -> String {
+  "{\"origin\":\{self.origin},\"events\":\{self.length()}}"
+}
+
+///|
 pub fn SyncSummary::new(
   replica : Int,
   clock : VectorClock,
@@ -446,4 +520,32 @@ pub fn SyncSummary::new(
 ///|
 pub fn SyncSummary::to_json(self : SyncSummary) -> String {
   "{\"replica\":\{self.replica},\"clock_entries\":\{self.clock_entries},\"counter_value\":\{self.counter_value},\"set_size\":\{self.set_size},\"log_events\":\{self.log_events}}"
+}
+
+///|
+pub fn SyncSummary::plan_with(
+  self : SyncSummary,
+  remote : SyncSummary,
+) -> SyncPlan {
+  let state_differs = self.counter_value != remote.counter_value ||
+    self.set_size != remote.set_size ||
+    self.clock_entries != remote.clock_entries
+  {
+    source: self.replica,
+    target: remote.replica,
+    needs_push: self.log_events > remote.log_events || state_differs,
+    needs_pull: remote.log_events > self.log_events || state_differs,
+    source_events: self.log_events,
+    target_events: remote.log_events,
+  }
+}
+
+///|
+pub fn SyncPlan::should_exchange(self : SyncPlan) -> Bool {
+  self.needs_push || self.needs_pull
+}
+
+///|
+pub fn SyncPlan::to_json(self : SyncPlan) -> String {
+  "{\"source\":\{self.source},\"target\":\{self.target},\"needs_push\":\{self.needs_push},\"needs_pull\":\{self.needs_pull},\"source_events\":\{self.source_events},\"target_events\":\{self.target_events}}"
 }

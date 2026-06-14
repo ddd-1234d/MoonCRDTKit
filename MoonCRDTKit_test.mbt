@@ -89,6 +89,27 @@ test "change logs deduplicate events by replica sequence id" {
 }
 
 ///|
+test "change logs produce idempotent delta batches from vector clocks" {
+  let source = @MoonCRDTKit.ChangeLog::new()
+  ignore(source.append(@MoonCRDTKit.ChangeEvent::new(1, 1, "set", "title")))
+  ignore(source.append(@MoonCRDTKit.ChangeEvent::new(1, 2, "set", "body")))
+  ignore(source.append(@MoonCRDTKit.ChangeEvent::new(2, 1, "add", "tag")))
+  let known = @MoonCRDTKit.VectorClock::new()
+  known.set(1, 1)
+  let delta = source.delta_after(known, origin=9)
+  assert_eq(delta.origin, 9)
+  assert_eq(delta.length(), 2)
+  assert_false(delta.is_empty())
+  assert_true(delta.to_json().contains("\"events\":2"))
+  let target = @MoonCRDTKit.ChangeLog::new()
+  ignore(target.append(@MoonCRDTKit.ChangeEvent::new(1, 1, "set", "title")))
+  let first = target.apply_delta(delta)
+  let second = first.apply_delta(delta)
+  assert_eq(first.length(), 3)
+  assert_eq(second.length(), 3)
+}
+
+///|
 test "sync summary reports compact replica state" {
   let clock = @MoonCRDTKit.VectorClock::new()
   let counter = @MoonCRDTKit.PNCounter::new()
@@ -103,4 +124,36 @@ test "sync summary reports compact replica state" {
   assert_eq(summary.counter_value, 5)
   assert_eq(summary.set_size, 1)
   assert_true(summary.to_json().contains("\"log_events\":1"))
+}
+
+///|
+test "sync summaries build exchange plans" {
+  let clock = @MoonCRDTKit.VectorClock::new()
+  let local_counter = @MoonCRDTKit.PNCounter::new()
+  let remote_counter = @MoonCRDTKit.PNCounter::new()
+  let set = @MoonCRDTKit.ORSet::new()
+  let local_log = @MoonCRDTKit.ChangeLog::new()
+  let remote_log = @MoonCRDTKit.ChangeLog::new()
+  local_counter.increment(1, amount=3)
+  remote_counter.increment(1, amount=1)
+  ignore(
+    local_log.append(@MoonCRDTKit.ChangeEvent::new(1, 1, "inc", "counter")),
+  )
+  ignore(
+    local_log.append(@MoonCRDTKit.ChangeEvent::new(1, 2, "inc", "counter")),
+  )
+  ignore(
+    remote_log.append(@MoonCRDTKit.ChangeEvent::new(1, 1, "inc", "counter")),
+  )
+  let local_summary = @MoonCRDTKit.SyncSummary::new(
+    1, clock, local_counter, set, local_log,
+  )
+  let remote = @MoonCRDTKit.SyncSummary::new(
+    2, clock, remote_counter, set, remote_log,
+  )
+  let plan = local_summary.plan_with(remote)
+  assert_true(plan.needs_push)
+  assert_true(plan.needs_pull)
+  assert_true(plan.should_exchange())
+  assert_true(plan.to_json().contains("\"source\":1"))
 }
