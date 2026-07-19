@@ -11,16 +11,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup MoonBit
         uses: moonbitlang/setup-moonbit@v1
 
-      - name: Format check
-        run: moon fmt --check
+      - name: Toolchain version
+        run: moon version --all
 
-      - name: Run tests
-        run: moon test
+      - name: Format check (strict when supported)
+        shell: pwsh
+        run: |
+          $help = moon fmt --help | Out-String
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($help -match '--deny-warn') { moon fmt --deny-warn } else { moon fmt --check }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Metadata check (strict when supported)
+        shell: pwsh
+        run: |
+          $help = moon info --help | Out-String
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($help -match '--deny-warn') { moon info --deny-warn } else {
+            moon info
+            git diff --exit-code -- '*.mbti'
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Static check
+        run: moon check --deny-warn --target all
+
+      - name: Build all targets
+        run: moon build --target all
+
+      - name: Run tests on all targets
+        run: moon test --deny-warn --target all
 
       - name: Run CLI demo
         run: moon run cmd/main

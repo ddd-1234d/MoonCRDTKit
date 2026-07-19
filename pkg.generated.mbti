@@ -1,0 +1,158 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ddd-1234d/MoonCRDTKit"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) struct ChangeEvent {
+  replica : Int
+  sequence : Int
+  kind : String
+  target : String
+} derive(Eq, @debug.Debug)
+pub fn ChangeEvent::id(Self) -> Int
+pub fn ChangeEvent::new(Int, Int, String, String) -> Self
+pub fn ChangeEvent::same_identity(Self, Self) -> Bool
+
+pub(all) struct ChangeLog {
+  events : Array[ChangeEvent]
+} derive(@debug.Debug)
+pub fn ChangeLog::append(Self, ChangeEvent) -> Bool
+pub fn ChangeLog::apply_delta(Self, DeltaBatch) -> Self
+pub fn ChangeLog::delta_after(Self, VectorClock, origin? : Int) -> DeltaBatch
+pub fn ChangeLog::length(Self) -> Int
+pub fn ChangeLog::merge(Self, Self) -> Self
+pub fn ChangeLog::new() -> Self
+
+pub(all) struct ClockEntry {
+  replica : Int
+  counter : Int
+} derive(Eq, @debug.Debug)
+pub fn ClockEntry::new(Int, Int) -> Self
+
+pub(all) struct CounterEntry {
+  replica : Int
+  value : Int
+} derive(Eq, @debug.Debug)
+pub fn CounterEntry::new(Int, Int) -> Self
+
+pub(all) struct DeltaBatch {
+  origin : Int
+  events : Array[ChangeEvent]
+} derive(@debug.Debug)
+pub fn DeltaBatch::is_empty(Self) -> Bool
+pub fn DeltaBatch::length(Self) -> Int
+pub fn DeltaBatch::new(Int) -> Self
+pub fn DeltaBatch::to_json(Self) -> String
+
+pub(all) struct GCounter {
+  entries : Array[CounterEntry]
+} derive(@debug.Debug)
+pub fn GCounter::get(Self, Int) -> Int
+pub fn GCounter::increment(Self, Int, amount? : Int) -> Unit
+pub fn GCounter::merge(Self, Self) -> Self
+pub fn GCounter::new() -> Self
+pub fn GCounter::set(Self, Int, Int) -> Unit
+pub fn GCounter::value(Self) -> Int
+
+pub(all) struct LwwRegister {
+  value : String
+  timestamp : Int
+  replica : Int
+} derive(Eq, @debug.Debug)
+pub fn LwwRegister::assign(Self, String, Int, Int) -> Self
+pub fn LwwRegister::merge(Self, Self) -> Self
+pub fn LwwRegister::new(String, Int, Int) -> Self
+pub fn LwwRegister::to_json(Self) -> String
+
+pub(all) struct ORSet {
+  entries : Array[ORSetEntry]
+} derive(@debug.Debug)
+pub fn ORSet::add(Self, String, Int) -> Unit
+pub fn ORSet::add_from(Self, String, Int, Int) -> Unit
+pub fn ORSet::contains(Self, String) -> Bool
+pub fn ORSet::merge(Self, Self) -> Self
+pub fn ORSet::new() -> Self
+pub fn ORSet::remove(Self, String) -> Unit
+pub fn ORSet::size(Self) -> Int
+
+pub(all) struct ORSetEntry {
+  element : String
+  replica : Int
+  dot : Int
+  removed : Bool
+} derive(Eq, @debug.Debug)
+pub fn ORSetEntry::new(String, Int, Int, removed? : Bool) -> Self
+
+pub(all) struct PNCounter {
+  positive : GCounter
+  negative : GCounter
+} derive(@debug.Debug)
+pub fn PNCounter::decrement(Self, Int, amount? : Int) -> Unit
+pub fn PNCounter::increment(Self, Int, amount? : Int) -> Unit
+pub fn PNCounter::merge(Self, Self) -> Self
+pub fn PNCounter::new() -> Self
+pub fn PNCounter::value(Self) -> Int
+
+pub(all) struct ReplicaState {
+  replica : Int
+  clock : VectorClock
+  counter : PNCounter
+  tasks : ORSet
+  log : ChangeLog
+} derive(@debug.Debug)
+pub fn ReplicaState::add_task(Self, String) -> Unit
+pub fn ReplicaState::decrement(Self, amount? : Int) -> Unit
+pub fn ReplicaState::increment(Self, amount? : Int) -> Unit
+pub fn ReplicaState::merge(Self, Self) -> Self
+pub fn ReplicaState::new(Int) -> Self
+pub fn ReplicaState::remove_task(Self, String) -> Unit
+pub fn ReplicaState::summary(Self) -> SyncSummary
+
+pub(all) struct SyncPlan {
+  source : Int
+  target : Int
+  needs_push : Bool
+  needs_pull : Bool
+  source_events : Int
+  target_events : Int
+} derive(Eq, @debug.Debug)
+pub fn SyncPlan::should_exchange(Self) -> Bool
+pub fn SyncPlan::to_json(Self) -> String
+
+pub(all) struct SyncSummary {
+  replica : Int
+  clock : VectorClock
+  counter : PNCounter
+  set : ORSet
+  log : ChangeLog
+  clock_entries : Int
+  counter_value : Int
+  set_size : Int
+  log_events : Int
+} derive(@debug.Debug)
+pub fn SyncSummary::new(Int, VectorClock, PNCounter, ORSet, ChangeLog) -> Self
+pub fn SyncSummary::plan_with(Self, Self) -> SyncPlan
+pub fn SyncSummary::to_json(Self) -> String
+
+pub(all) struct VectorClock {
+  entries : Array[ClockEntry]
+} derive(@debug.Debug)
+pub fn VectorClock::concurrent_with(Self, Self) -> Bool
+pub fn VectorClock::dominates(Self, Self) -> Bool
+pub fn VectorClock::get(Self, Int) -> Int
+pub fn VectorClock::merge(Self, Self) -> Self
+pub fn VectorClock::new() -> Self
+pub fn VectorClock::set(Self, Int, Int) -> Unit
+pub fn VectorClock::tick(Self, Int) -> Unit
+
+// Type aliases
+
+// Traits
+

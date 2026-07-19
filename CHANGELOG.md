@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 - 2026-07-20
+
+- Added `ReplicaState`, a cohesive offline-first state model for counters, tasks, causal clocks and operation logs.
+- Made OR-Set add identity replica-scoped with `add_from`, preventing concurrent replicas from colliding on the same local sequence number.
+- Made `SyncPlan` compare complete replica state instead of only aggregate counters, preventing equal-count divergent states from being skipped.
+- Added merge-law, same-count divergence and out-of-order synchronization regression coverage.
+- Added reproducible installation instructions and a full CI quality gate for format, metadata, check, build and tests.
+
 ## 0.1.1 - 2026-06-14
 
 - 补充与 `mizchi/crdt_db`、`mizchi/converge` 和 MoonBit 官方 CRDT 文章的关系说明。

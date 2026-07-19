@@ -2,6 +2,30 @@
 
 MoonCRDTKit 是一个面向 MoonBit 的离线协同 CRDT 状态合并基础库。
 
+## 安装与最小接入
+
+在你的 MoonBit 项目根目录安装已发布包：
+
+```bash
+moon add ddd-1234d/MoonCRDTKit
+```
+
+最小离线任务同步示例：
+
+```moonbit nocheck
+import { "ddd-1234d/MoonCRDTKit" @crdt }
+
+let left = @crdt.ReplicaState::new(1)
+left.add_task("draft")
+let right = @crdt.ReplicaState::new(2)
+right.add_task("review")
+let converged = left.merge(right)
+println(converged.tasks.contains("draft"))
+println(converged.tasks.contains("review"))
+```
+
+`ReplicaState` 为每次本地操作分配副本内单调序号；`ORSet::add_from` 使用 `(replica, sequence)` 作为 Dot 身份，避免不同副本相同序号的并发添加碰撞。旧的 `ORSet::add` 仅保留给单写者兼容场景。
+
 项目聚焦弱网与离线场景下的多端状态收敛，提供向量时钟、LWW 寄存器、G-Counter、PN-Counter、OR-Set、变更日志和同步摘要等能力，适合协作文档、离线表单、边缘设备状态同步、多人编辑器和教学算法示例。
 
 ## 创新点
@@ -26,11 +50,12 @@ MoonBit 官方文章《Implementing CRDT Algorithms with MoonBit and Building Re
 - `LwwRegister`：最后写入胜出寄存器，支持时间戳和副本号确定性裁决。
 - `GCounter`：只增计数器，按副本取最大值合并。
 - `PNCounter`：正负计数器，支持离线增减后收敛。
-- `ORSet`：观察删除集合，支持离线添加、观察后删除和合并。
+- `ORSet`：观察删除集合；多副本调用 `add_from(element, replica, sequence)`，以 `(replica, sequence)` 区分并发添加，支持离线添加、观察后删除和合并。
 - `ChangeLog`：记录副本变更事件并按事件 id 去重。
 - `DeltaBatch`：根据对端向量时钟提取缺失事件，支持幂等应用。
 - `SyncSummary`：输出副本同步摘要，便于 CLI、调试面板和状态心跳使用。
-- `SyncPlan`：比较两个摘要，判断是否需要 push / pull / 双向交换。
+- `SyncPlan`：比较两个摘要中的完整 CRDT 状态，而非只比较数量；可识别“元素数相同但内容不同”的副本，判断是否需要 push / pull / 双向交换。
+- `ReplicaState`：将因果时钟、PN-Counter、OR-Set 与 ChangeLog 组合为可直接用于离线任务和计数场景的副本状态。
 
 ## 快速示例
 
